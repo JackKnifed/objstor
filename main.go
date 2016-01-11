@@ -10,9 +10,11 @@ import (
 
 // var ErrBadAction = errors.New("somepkg: a bad action was performed")
 
-var endpoint = "liquidweb.services"
-var bypassEncryption = false
-var timeFormat = "Jan _2 2006 15:04"
+const (
+	endpoint         = "liquidweb.services"
+	bypassEncryption = false
+	timeFormat       = "Jan _2 2006 15:04"
+)
 
 type params struct {
 	accessKey string
@@ -23,58 +25,7 @@ type params struct {
 	cmdParams []string
 }
 
-func getConfig() params {
-	var config params
-	// parameters are passed as:
-	// binary Command Pwd [CmdParams ...] Bucket AccessKey
-	config.command = os.Args[1]
-	//Pwd := os.Args[2]
-	config.bucket = os.Args[len(os.Args)-2]
-	config.accessKey = os.Args[len(os.Args)-1]
-
-	config.cmdParams = os.Args[3 : len(os.Args)-2]
-
-	// SecretKey is passed via enviroment variable
-	config.secretKey = os.Getenv("PASSWORD")
-
-	return config
-}
-
-func main() {
-	config := getConfig()
-
-	client, err := minio.New(endpoint, config.accessKey, config.secretKey, bypassEncryption)
-	if err != nil {
-		log.Fatalf("Access Key [%s]\nendpoint[%s]\nfailed to create new client\n%v", config.accessKey, endpoint, err)
-	}
-
-	if err = client.BucketExists(config.bucket); err != nil {
-		log.Fatalf("Access Key [%s]\nendpoint[%s]\nbucket [%s] does not exist\n%v", config.accessKey, endpoint, config.bucket, err)
-	}
-
-	switch config.command {
-	case "ls":
-		Lsdir(client, config)
-	case "mkdir":
-	case "chdir":
-		Chdir(client, config)
-	case "rmdir":
-		rmdir(client, config)
-	case "delete":
-		delete(client, config)
-	case "get":
-		get(client, config)
-	case "put":
-		put(client, config)
-	default:
-		log.Fatal("bad action")
-	}
-
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-}
-
+// returns the contentType of the given file at the given location
 func fileContentType(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -94,6 +45,27 @@ func fileContentType(path string) (string, error) {
 
 	// Always returns a valid content-type and "application/octet-stream" if no others seemed to match.
 	return http.DetectContentType(buffer), nil
+}
+
+// parses the config out of the Args (and one env variable)
+func getConfig(args []string) params {
+	var config params
+	// parameters are passed as:
+	// binary Command Pwd [CmdParams ...] Bucket AccessKey
+	config.command = args[1]
+	config.pwd = args[2]
+
+	// working from the back
+	config.bucket = args[len(args)-2]
+	config.accessKey = args[len(args)-1]
+
+	// everything in the middle is the cmdParams
+	config.cmdParams = args[3 : len(args)-2]
+
+	// SecretKey is passed via enviroment variable
+	config.secretKey = os.Getenv("PASSWORD")
+
+	return config
 }
 
 // removes a file at a given location
@@ -177,5 +149,40 @@ func put(client minio.CloudStorageClient, config params) {
 	_, err = client.FPutObject(config.bucket, config.cmdParams[1], config.cmdParams[0], contentType)
 	if err != nil {
 		log.Fatalf("failed to put file type - %v", err)
+	}
+}
+
+func main() {
+	config := getConfig(os.Args)
+
+	client, err := minio.New(endpoint, config.accessKey, config.secretKey, bypassEncryption)
+	if err != nil {
+		log.Fatalf("Access Key [%s]\nendpoint[%s]\nfailed to create new client\n%v", config.accessKey, endpoint, err)
+	}
+
+	if err = client.BucketExists(config.bucket); err != nil {
+		log.Fatalf("Access Key [%s]\nendpoint[%s]\nbucket [%s] does not exist\n%v", config.accessKey, endpoint, config.bucket, err)
+	}
+
+	switch config.command {
+	case "ls":
+		Lsdir(client, config)
+	case "mkdir":
+	case "chdir":
+		Chdir(client, config)
+	case "rmdir":
+		rmdir(client, config)
+	case "delete":
+		delete(client, config)
+	case "get":
+		get(client, config)
+	case "put":
+		put(client, config)
+	default:
+		log.Fatal("bad action")
+	}
+
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 }
