@@ -83,7 +83,7 @@ func delete(client minio.CloudStorageClient, config params) {
 func chdir(client minio.CloudStorageClient, config params) {
 	_, err := fmt.Println(config.cmdParams[0])
 	if err != nil {
-		panic(fmt.Sprintf("failed to print the given path %s\n%v", config.cmdParams[9], err))
+		log.Fatalf("failed to print the given path %s\n%v", config.cmdParams[9], err)
 	}
 }
 
