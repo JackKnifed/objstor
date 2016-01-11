@@ -80,7 +80,7 @@ func delete(client minio.CloudStorageClient, config params) {
 
 // does almost nothing - not required, but must return the path
 // cli: `binary` `chdir` `Pwd` `path` `bucketName` `username`
-func Chdir(client minio.CloudStorageClient, config params) {
+func chdir(client minio.CloudStorageClient, config params) {
 	_, err := fmt.Println(config.cmdParams[0])
 	if err != nil {
 		panic(fmt.Sprintf("failed to print the given path %s\n%v", config.cmdParams[9], err))
@@ -90,7 +90,7 @@ func Chdir(client minio.CloudStorageClient, config params) {
 // lists the content of a directory on the remote system
 // cli: `binary` `ls` `Pwd` `path` `bucketName` `username`
 // passed to this is ["path"]
-func Lsdir(client minio.CloudStorageClient, config params) {
+func lsdir(client minio.CloudStorageClient, config params) {
 	var stop chan struct{}
 	var item minio.ObjectInfo
 	var err error
@@ -166,10 +166,10 @@ func main() {
 
 	switch config.command {
 	case "ls":
-		Lsdir(client, config)
+		lsdir(client, config)
 	case "mkdir":
 	case "chdir":
-		Chdir(client, config)
+		chdir(client, config)
 	case "rmdir":
 		rmdir(client, config)
 	case "delete":
