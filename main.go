@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/minio/minio-go"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -68,29 +69,43 @@ func getConfig(args []string) params {
 	return config
 }
 
+func getClient(config params) (minio.CloudStorageClient, error) {
+	client, err := minio.New(endpoint, config.accessKey, config.secretKey, bypassEncryption)
+	if err != nil {
+		return nil, fmt.Errorf("Access Key [%s]\nendpoint[%s]\nfailed to create new client\n%v", config.accessKey, endpoint, err)
+	}
+
+	if err = client.BucketExists(config.bucket); err != nil {
+		return nil, fmt.Errorf("Access Key [%s]\nendpoint[%s]\nbucket [%s] does not exist\n%v", config.accessKey, endpoint, config.bucket, err)
+	}
+	return client, nil
+}
+
 // removes a file at a given location
 // cli: `delete` `rmdir` `Pwd` `path` `bucketName` `username`
 // passed to this is ["path"]
-func delete(client minio.CloudStorageClient, config params) {
+func delete(client minio.CloudStorageClient, config params) error {
 	err := client.RemoveObject(config.bucket, config.cmdParams[0])
 	if err != nil {
-		log.Fatalf("failed to delete %s\n%v", config.cmdParams[0], err)
+		return fmt.Errorf("failed to delete %s\n%v", config.cmdParams[0], err)
 	}
+	return nil
 }
 
 // does almost nothing - not required, but must return the path
 // cli: `binary` `chdir` `Pwd` `path` `bucketName` `username`
-func chdir(client minio.CloudStorageClient, config params) {
-	_, err := fmt.Println(config.cmdParams[0])
+func chdir(client minio.CloudStorageClient, config params, out io.Writer) error {
+	_, err := fmt.Fprintln(out, config.cmdParams[0])
 	if err != nil {
-		log.Fatalf("failed to print the given path %s\n%v", config.cmdParams[9], err)
+		return fmt.Errorf("failed to print the given path %s\n%v", config.cmdParams[9], err)
 	}
+	return nil
 }
 
 // lists the content of a directory on the remote system
 // cli: `binary` `ls` `Pwd` `path` `bucketName` `username`
 // passed to this is ["path"]
-func lsdir(client minio.CloudStorageClient, config params) {
+func lsdir(client minio.CloudStorageClient, config params, out io.Writer) error {
 	var stop chan struct{}
 	var item minio.ObjectInfo
 	var err error
@@ -101,20 +116,21 @@ func lsdir(client minio.CloudStorageClient, config params) {
 	for {
 		item, more = <-res
 		if !more {
-			return
+			return nil
 		}
-		_, err = fmt.Printf("-rwxr-xr-1 %s %s %d %s %s", item.Owner.DisplayName, item.Owner.DisplayName, item.Size, item.LastModified.Format(timeFormat), item.Key)
+		_, err = fmt.Fprintf(out, "-rwxr-xr-1 %s %s %d %s %s", item.Owner.DisplayName, item.Owner.DisplayName, item.Size, item.LastModified.Format(timeFormat), item.Key)
 		if err != nil {
 			stop <- struct{}{}
-			log.Fatalf("failed display the file %s\n%v", item.Key, err)
+			return fmt.Errorf("failed display the file %s\n%v", item.Key, err)
 		}
 	}
+	return nil
 }
 
 // removes everything under the given path on the remote Bucket
 // cli: `binary` `rmdir` `Pwd` `path` `bucketName` `username`
 // passed to this is ["path"]
-func rmdir(client minio.CloudStorageClient, config params) {
+func rmdir(client minio.CloudStorageClient, config params) error {
 	var stop chan struct{}
 	var item minio.ObjectInfo
 	var err error
@@ -125,59 +141,58 @@ func rmdir(client minio.CloudStorageClient, config params) {
 	for {
 		item, more = <-res
 		if !more {
-			return
+			return nil
 		}
 		if err = client.RemoveObject(config.bucket, item.Key); err != nil {
 			stop <- struct{}{}
-			log.Fatalf("emptying directory [%s]\nfailed removing the file %s\n%v", config.cmdParams[0], item.Key, err)
+			return fmt.Errorf("emptying directory [%s]\nfailed removing the file %s\n%v", config.cmdParams[0], item.Key, err)
 		}
 	}
+	// return nil
 }
 
-func get(client minio.CloudStorageClient, config params) {
+func get(client minio.CloudStorageClient, config params) error {
 	err := client.FGetObject(config.bucket, config.cmdParams[1], config.cmdParams[0])
 	if err != nil {
-		log.Fatalf("failed to put file type - %v", err)
+		return fmt.Errorf("failed to put file type - %v", err)
 	}
+	return nil
 }
 
-func put(client minio.CloudStorageClient, config params) {
+func put(client minio.CloudStorageClient, config params) error {
 	contentType, err := fileContentType(config.cmdParams[0])
 	if err != nil {
-		log.Fatalf("failed to determine content type - %v", err)
+		return fmt.Errorf("failed to determine content type - %v", err)
 	}
 	_, err = client.FPutObject(config.bucket, config.cmdParams[1], config.cmdParams[0], contentType)
 	if err != nil {
-		log.Fatalf("failed to put file type - %v", err)
+		return fmt.Errorf("failed to put file type - %v", err)
 	}
+	return nil
 }
 
 func main() {
 	config := getConfig(os.Args)
 
-	client, err := minio.New(endpoint, config.accessKey, config.secretKey, bypassEncryption)
+	client, err := getClient(config)
 	if err != nil {
-		log.Fatalf("Access Key [%s]\nendpoint[%s]\nfailed to create new client\n%v", config.accessKey, endpoint, err)
-	}
-
-	if err = client.BucketExists(config.bucket); err != nil {
-		log.Fatalf("Access Key [%s]\nendpoint[%s]\nbucket [%s] does not exist\n%v", config.accessKey, endpoint, config.bucket, err)
+		log.Fatal(err.Error())
 	}
 
 	switch config.command {
 	case "ls":
-		lsdir(client, config)
+		err = lsdir(client, config, os.Stdout)
 	case "mkdir":
 	case "chdir":
-		chdir(client, config)
+		err = chdir(client, config, os.Stdout)
 	case "rmdir":
-		rmdir(client, config)
+		err = rmdir(client, config)
 	case "delete":
-		delete(client, config)
+		err = delete(client, config)
 	case "get":
-		get(client, config)
+		err = get(client, config)
 	case "put":
-		put(client, config)
+		err = put(client, config)
 	default:
 		log.Fatal("bad action")
 	}

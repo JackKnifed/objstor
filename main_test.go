@@ -65,18 +65,28 @@ func TestGetConfig(t *testing.T) {
 	}
 }
 
-func ExampleChDir() {
-	client, _ := minio.New("liquidweb.services", "accessKey", "sekretKey", false)
-	chdir(client,
-		params{
-			cmdParams: []string{
-				"/test/folder/within/bucket",
-			},
-		})
+func TestGetClient(t *testing.T) {
+	config := params{
+		accessKey: os.Getenv("testuser"),
+		secretKey: os.Getenv("testpass"),
+		bucket:    os.Getenv("bucket"),
+	}
+	assert.NotEmpty(t, config.accessKey, "testuser not set for test")
+	assert.NotEmpty(t, config.secretKey, "testpass not set for test")
+	assert.NotEmtpy(t, config.bucket, "bucket not set for test")
 
-	//Output:
-	// /test/folder/within/bucket
+	_, err := getClient(config)
+	assert.Nil(t, err, "Failed to create bucket - %v", err)
 }
+
+// func TestChdir(t *testing.T) {
+// 	client, _ := minio.New(endpoint, os.Getenv("accessKey"), os.Getenv("testpass"), false)
+// 	r, w := io.Pipe()
+
+// 	go chdir(client, params{cmdParams: []string{"/test/folder/within/bucket"}}, w)
+// 	r.Read()
+
+// }
 
 // func TestFileContentType(t *testing.T) {
 
