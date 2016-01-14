@@ -12,7 +12,7 @@ import (
 // var ErrBadAction = errors.New("somepkg: a bad action was performed")
 
 const (
-	endpoint         = "liquidweb.services"
+	endpoint         = "objects.liquidweb.services"
 	bypassEncryption = false
 	timeFormat       = "Jan _2 2006 15:04"
 )
@@ -70,13 +70,14 @@ func getConfig(args []string) params {
 }
 
 func getClient(config params) (minio.CloudStorageClient, error) {
-	client, err := minio.New(endpoint, config.accessKey, config.secretKey, bypassEncryption)
+	client, err := minio.NewV2(endpoint, config.accessKey, config.secretKey, bypassEncryption)
 	if err != nil {
 		return nil, fmt.Errorf("Access Key [%s]\nendpoint[%s]\nfailed to create new client\n%v", config.accessKey, endpoint, err)
 	}
 
 	if err = client.BucketExists(config.bucket); err != nil {
-		return nil, fmt.Errorf("Access Key [%s]\nendpoint[%s]\nbucket [%s] does not exist\n%v", config.accessKey, endpoint, config.bucket, err)
+		//return nil, fmt.Errorf("Access Key [%s]\nendpoint[%s]\nbucket [%s] does not exist\n%v", config.accessKey, endpoint, config.bucket, err)
+		return nil, err
 	}
 	return client, nil
 }

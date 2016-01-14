@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/minio/minio-go"
+	//"github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -67,16 +67,16 @@ func TestGetConfig(t *testing.T) {
 
 func TestGetClient(t *testing.T) {
 	config := params{
-		accessKey: os.Getenv("testuser"),
-		secretKey: os.Getenv("testpass"),
-		bucket:    os.Getenv("bucket"),
+		accessKey: os.Getenv("TESTUSER"),
+		secretKey: os.Getenv("TESTPASS"),
+		bucket:    os.Getenv("BUCKET"),
 	}
-	assert.NotEmpty(t, config.accessKey, "testuser not set for test")
-	assert.NotEmpty(t, config.secretKey, "testpass not set for test")
-	assert.NotEmtpy(t, config.bucket, "bucket not set for test")
+	assert.NotEmpty(t, config.accessKey, "TESTUSER not set for test")
+	assert.NotEmpty(t, config.secretKey, "TESTPASS not set for test")
+	assert.NotEmpty(t, config.bucket, "BUCKET not set for test")
 
 	_, err := getClient(config)
-	assert.Nil(t, err, "Failed to create bucket - %v", err)
+	assert.Nil(t, err, "%v", err)
 }
 
 // func TestChdir(t *testing.T) {
