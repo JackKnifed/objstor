@@ -7,14 +7,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
-// var ErrBadAction = errors.New("somepkg: a bad action was performed")
+// example call
+//  /root/bin/objstor put / /var/cpanel/backups/tmp.test.2266-1452758896 lol-secure/validate.tmp-2266-1452758896.txt objects.liquidweb.services URHR6M3LZM2835X9BNYF
 
 const (
 	endpoint         = "objects.liquidweb.services"
 	bypassEncryption = false
 	timeFormat       = "Jan _2 2006 15:04"
+	relPathSeperator = "/"
 )
 
 type params struct {
@@ -24,6 +27,45 @@ type params struct {
 	pwd       string
 	bucket    string
 	cmdParams []string
+}
+
+func expandPath(pwd, path string) string {
+	var pathParts []string
+	if strings.HasPrefix(path, relPathSeperator) {
+		pathParts = strings.Split(path, relPathSeperator)
+	} else {
+		pathParts = strings.Split(pwd+relPathSeperator+path, relPathSeperator)
+	}
+
+	for i := 0; i < len(pathParts); i++ {
+		if len(pathParts) < 1 {
+			break
+		}
+		switch pathParts[i] {
+		case ".":
+			if i+1 < len(pathParts) {
+				pathParts = append(pathParts[:i], pathParts[i+1:]...)
+			} else {
+				pathParts = pathParts[:i]
+			}
+		case "":
+			if i+1 < len(pathParts) {
+				pathParts = append(pathParts[:i], pathParts[i+1:]...)
+			} else {
+				pathParts = pathParts[:i]
+			}
+		case "..":
+			if i < 1 {
+				pathParts = pathParts[i+1:]
+			} else if i+1 < len(pathParts) {
+				pathParts = append(pathParts[:i-1], pathParts[i+1:]...)
+			} else {
+				pathParts = pathParts[:i-1]
+			}
+		}
+	}
+
+	return relPathSeperator + strings.Join(pathParts, relPathSeperator)
 }
 
 // returns the contentType of the given file at the given location
@@ -86,7 +128,7 @@ func getClient(config params) (minio.CloudStorageClient, error) {
 // cli: `delete` `rmdir` `Pwd` `path` `bucketName` `username`
 // passed to this is ["path"]
 func delete(client minio.CloudStorageClient, config params) error {
-	err := client.RemoveObject(config.bucket, config.cmdParams[0])
+	err := client.RemoveObject(config.bucket, expandPath(config.pwd, config.cmdParams[0]))
 	if err != nil {
 		return fmt.Errorf("failed to delete %s\n%v", config.cmdParams[0], err)
 	}
@@ -96,7 +138,7 @@ func delete(client minio.CloudStorageClient, config params) error {
 // does almost nothing - not required, but must return the path
 // cli: `binary` `chdir` `Pwd` `path` `bucketName` `username`
 func chdir(client minio.CloudStorageClient, config params, out io.Writer) error {
-	_, err := fmt.Fprintln(out, config.cmdParams[0])
+	_, err := fmt.Fprintln(out, expandPath(config.pwd, config.cmdParams[0]))
 	if err != nil {
 		return fmt.Errorf("failed to print the given path %s\n%v", config.cmdParams[9], err)
 	}
@@ -112,7 +154,7 @@ func lsdir(client minio.CloudStorageClient, config params, out io.Writer) error 
 	var err error
 
 	more := true
-	res := client.ListObjects(config.bucket, config.cmdParams[0], false, stop)
+	res := client.ListObjects(config.bucket, expandPath(config.pwd, config.cmdParams[0]), false, stop)
 
 	for {
 		item, more = <-res
@@ -137,7 +179,7 @@ func rmdir(client minio.CloudStorageClient, config params) error {
 	var err error
 
 	more := true
-	res := client.ListObjects(config.bucket, config.cmdParams[0], false, stop)
+	res := client.ListObjects(config.bucket, expandPath(config.pwd, config.cmdParams[0]), false, stop)
 
 	for {
 		item, more = <-res
@@ -153,7 +195,7 @@ func rmdir(client minio.CloudStorageClient, config params) error {
 }
 
 func get(client minio.CloudStorageClient, config params) error {
-	err := client.FGetObject(config.bucket, config.cmdParams[1], config.cmdParams[0])
+	err := client.FGetObject(config.bucket, config.cmdParams[1], expandPath(config.pwd, config.cmdParams[0]))
 	if err != nil {
 		return fmt.Errorf("failed to put file type - %v", err)
 	}
