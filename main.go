@@ -161,7 +161,7 @@ func lsdir(client minio.CloudStorageClient, config params, out io.Writer) error 
 		if !more {
 			return nil
 		}
-		_, err = fmt.Fprintf(out, "-rwxr-xr-1 %s %s %d %s %s", item.Owner.DisplayName, item.Owner.DisplayName, item.Size, item.LastModified.Format(timeFormat), item.Key)
+		_, err = fmt.Fprintf(out, "-rwxr-xr-x %s %s %d %s %s", item.Owner.DisplayName, item.Owner.DisplayName, item.Size, item.LastModified.Format(timeFormat), item.Key)
 		if err != nil {
 			stop <- struct{}{}
 			return fmt.Errorf("failed display the file %s\n%v", item.Key, err)
