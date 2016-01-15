@@ -194,22 +194,36 @@ func rmdir(client minio.CloudStorageClient, config params) error {
 	// return nil
 }
 
+// downloads a file from the remote location
+// cli: `binary` `get` `pwd` `remote file` `local file` `bucketName` `username`
+// passed to this is ["remote", "local"]
 func get(client minio.CloudStorageClient, config params) error {
-	err := client.FGetObject(config.bucket, config.cmdParams[1], expandPath(config.pwd, config.cmdParams[0]))
+
+	remotePath := expandPath(config.pwd, config.cmdParams[0])
+
+	//func (c Client) FGetObject(bucketName, objectName, filePath string) error
+	err := client.FGetObject(config.bucket, remotePath, config.cmdParams[1])
 	if err != nil {
-		return fmt.Errorf("failed to put file type - %v", err)
+		return fmt.Errorf("failed to get object [%q] to file [%q] - %v", err)
 	}
 	return nil
 }
 
+// puts a file onto the remote location
+// cli: `binary` `get` `pwd` `local file` `remote file` `bucketName` `username`
+// passed to this is ["local", "remote"]
 func put(client minio.CloudStorageClient, config params) error {
 	contentType, err := fileContentType(config.cmdParams[0])
 	if err != nil {
 		return fmt.Errorf("failed to determine content type - %v", err)
 	}
-	_, err = client.FPutObject(config.bucket, config.cmdParams[1], config.cmdParams[0], contentType)
+
+	remotePath := expandPath(config.pwd, config.cmdParams[1])
+
+	// func (c Client) FPutObject(bucketName, objectName, filePath, contentType string) (n int64, err error)
+	_, err = client.FPutObject(config.bucket, remotePath, config.cmdParams[0], contentType)
 	if err != nil {
-		return fmt.Errorf("failed to put file type - %v", err)
+		return fmt.Errorf("failed to put file - %v", err)
 	}
 	return nil
 }
