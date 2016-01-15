@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"bytes"
 	"os"
 	"strings"
 )
@@ -228,6 +229,24 @@ func put(client minio.CloudStorageClient, config params) error {
 	return nil
 }
 
+// makes a folder on the remote server.
+// cli: `binary` `get` `pwd` `folder name` `bucketName` `username`
+// sitting in config.cmdParams is ["folder name"]
+func mkdir(client minio.CloudStorageClient, config params) error {
+	contents := bytes.NewReader([]byte{})
+
+	folderName := expandPath(config.pwd, config.cmdParams[0])
+	if !strings.HasSuffix(folderName, relPathSeperator) {
+		folderName = folderName + relPathSeperator
+	}
+
+	_, err := client.PutObject(config.bucket, folderName, contents, "application/octet-stream")
+	if err != nil {
+		return fmt.Errorf("failed to create folder [%q] - %v", folderName, err)
+	}
+	return nil
+}
+
 func main() {
 	config := getConfig(os.Args)
 
@@ -240,6 +259,7 @@ func main() {
 	case "ls":
 		err = lsdir(client, config, os.Stdout)
 	case "mkdir":
+		err = mkdir(client, config)
 	case "chdir":
 		err = chdir(client, config, os.Stdout)
 	case "rmdir":
