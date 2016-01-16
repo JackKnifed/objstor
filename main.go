@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/minio/minio-go"
 	"io"
 	"log"
 	"net/http"
-	"bytes"
 	"os"
 	"strings"
 )
@@ -240,7 +240,7 @@ func mkdir(client minio.CloudStorageClient, config params) error {
 		folderName = folderName + relPathSeperator
 	}
 
-	_, err := client.PutObject(config.bucket, folderName, contents, "application/octet-stream")
+	_, err := client.PutObject(config.bucket, folderName, contents, "application/x-directory")
 	if err != nil {
 		return fmt.Errorf("failed to create folder [%q] - %v", folderName, err)
 	}
