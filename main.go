@@ -38,7 +38,7 @@ func expandPath(pwd, path string) string {
 		pathParts = strings.Split(pwd+relPathSeperator+path, relPathSeperator)
 	}
 
-	for i := 0; i < len(pathParts); i++ {
+	for i := 0; i < len(pathParts); {
 		if len(pathParts) < 1 {
 			break
 		}
@@ -60,7 +60,7 @@ func expandPath(pwd, path string) string {
 		case "..":
 			if i < 1 {
 				// if this is the first element in the list, start at the second element
-				pathParts = pathParts[1:]
+				pathParts = pathParts[i+1:]
 			} else if i+1 < len(pathParts) {
 				// if there is at least one more item in the list cut this element and the one before, and tack on what's left
 				pathParts = append(pathParts[:i-1], pathParts[i+1:]...)
@@ -68,10 +68,11 @@ func expandPath(pwd, path string) string {
 				// else just lop off this element and the one before
 				pathParts = pathParts[:i-1]
 			}
+		default:
+			i++
 		}
 	}
 
-			// log.Printf("%d - %#v\n",1, pathParts)
 	return relPathSeperator + strings.Join(pathParts, relPathSeperator)
 }
 

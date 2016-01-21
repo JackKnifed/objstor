@@ -112,9 +112,21 @@ func TestExpandPath(t *testing.T) {
 			path:     "filename.txt",
 			expected: "/path/to/file/filename.txt",
 		}, {
+			pwd:      "/path/to/file",
+			path:     ".",
+			expected: "/path/to/file",
+		}, {
+			pwd:      "/path/to/file",
+			path:     "",
+			expected: "/path/to/file",
+		}, {
 			pwd:      "/path/../to/file",
 			path:     "filename.txt",
 			expected: "/to/file/filename.txt",
+		}, {
+			pwd:      "/../path/to/file",
+			path:     "filename.txt",
+			expected: "/path/to/file/filename.txt",
 		}, {
 			pwd:      "",
 			path:     "/",
@@ -125,7 +137,7 @@ func TestExpandPath(t *testing.T) {
 	var result string
 	for id, test := range testData {
 		result = expandPath(test.pwd, test.path)
-		assert.Equal(t, test.expected, result, "test %d - did not match", id)
+		assert.Equal(t, test.expected, result, "test %d pwd [%q] path [%q] - did not match", id, test.pwd, test.path)
 	}
 }
 
