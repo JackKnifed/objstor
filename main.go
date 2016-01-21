@@ -17,6 +17,7 @@ import (
 const (
 	endpoint         = "objects.liquidweb.services"
 	bypassEncryption = false
+	folderContentType = "application/x-directory"
 	timeFormat       = "Jan _2 2006 15:04"
 	relPathSeperator = "/"
 )
@@ -39,9 +40,6 @@ func expandPath(pwd, path string) string {
 	}
 
 	for i := 0; i < len(pathParts); {
-		if len(pathParts) < 1 {
-			break
-		}
 		switch pathParts[i] {
 		case ".":
 			if i+1 < len(pathParts) {
@@ -247,7 +245,7 @@ func mkdir(client minio.CloudStorageClient, config params) error {
 		folderName = folderName + relPathSeperator
 	}
 
-	_, err := client.PutObject(config.bucket, folderName, contents, "application/x-directory")
+	_, err := client.PutObject(config.bucket, folderName, contents, folderContentType)
 	if err != nil {
 		return fmt.Errorf("failed to create folder [%q] - %v", folderName, err)
 	}
