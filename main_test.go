@@ -71,12 +71,62 @@ func TestGetClient(t *testing.T) {
 		secretKey: os.Getenv("TESTPASS"),
 		bucket:    os.Getenv("BUCKET"),
 	}
-	assert.NotEmpty(t, config.accessKey, "TESTUSER not set for test")
-	assert.NotEmpty(t, config.secretKey, "TESTPASS not set for test")
-	assert.NotEmpty(t, config.bucket, "BUCKET not set for test")
+	if config.accessKey != "" && config.secretKey != "" && config.bucket != ""{
+		_, err := getClient(config)
+		assert.Nil(t, err, "%v", err)
+	}
+}
 
-	_, err := getClient(config)
-	assert.Nil(t, err, "%v", err)
+func TestExpandPath(t *testing.T) {
+	testData := []struct {
+		pwd      string
+		path     string
+		expected string
+	}{
+		{
+			pwd:      "/path/to/file",
+			path:     "filename.txt",
+			expected: "/path/to/file/filename.txt",
+		}, {
+			pwd:      "path/to/file",
+			path:     "filename.txt",
+			expected: "/path/to/file/filename.txt",
+		}, {
+			pwd:      "/path/to/file/",
+			path:     "filename.txt",
+			expected: "/path/to/file/filename.txt",
+		}, {
+			pwd:      "/path/to/file/",
+			path:     "/full/path/filename.txt",
+			expected: "/full/path/filename.txt",
+		}, {
+			pwd:      "/path/to/file",
+			path:     "filename.txt/",
+			expected: "/path/to/file/filename.txt",
+		}, {
+			pwd:      "/path///to/file",
+			path:     "filename.txt",
+			expected: "/path/to/file/filename.txt",
+		}, {
+			pwd:      "/path/./to/file",
+			path:     "filename.txt",
+			expected: "/path/to/file/filename.txt",
+		}, {
+			pwd:      "/path/../to/file",
+			path:     "filename.txt",
+			expected: "/to/file/filename.txt",
+		}, {
+			pwd:      "",
+			path:     "/",
+			expected: "/",
+		},
+	}
+
+	var result string
+	for id, test := range testData {
+		result = expandPath(test.pwd, test.path)
+		assert.Equal(t, test.expected, result, "test %d - did not match", id)
+	}
 }
 
 // func TestChdir(t *testing.T) {
