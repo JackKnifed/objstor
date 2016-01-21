@@ -128,6 +128,10 @@ func TestExpandPath(t *testing.T) {
 			path:     "filename.txt",
 			expected: "/path/to/file/filename.txt",
 		}, {
+			pwd:      "/path/to/file",
+			path:     "..",
+			expected: "/path/to",
+		}, {
 			pwd:      "",
 			path:     "/",
 			expected: "/",
