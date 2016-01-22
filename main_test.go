@@ -145,6 +145,22 @@ func TestExpandPath(t *testing.T) {
 	}
 }
 
+func TestMulti(t *testing.T){
+	config := params{
+		accessKey: os.Getenv("TESTUSER"),
+		secretKey: os.Getenv("TESTPASS"),
+		bucket:    os.Getenv("BUCKET"),
+	}
+	if config.accessKey == "" || config.secretKey == "" || config.bucket == ""{
+		t.Skip("credentials not provided, skipping tests - user [%q] bucket [%q]", config.accessKey, config.bucket)
+	}
+		_, err := getClient(config)
+		assert.Nil(t, err, "%v", err)
+
+
+
+}
+
 // func TestChdir(t *testing.T) {
 // 	client, _ := minio.New(endpoint, os.Getenv("accessKey"), os.Getenv("testpass"), false)
 // 	r, w := io.Pipe()

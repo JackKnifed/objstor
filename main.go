@@ -238,14 +238,11 @@ func put(client minio.CloudStorageClient, config params) error {
 // cli: `binary` `get` `pwd` `folder name` `bucketName` `username`
 // sitting in config.cmdParams is ["folder name"]
 func mkdir(client minio.CloudStorageClient, config params) error {
-	contents := bytes.NewReader([]byte{})
+	contents := strings.NewReader("")
 
 	folderName := expandPath(config.pwd, config.cmdParams[0])
-	if !strings.HasSuffix(folderName, relPathSeperator) {
-		folderName = folderName + relPathSeperator
-	}
 
-	_, err := client.PutObject(config.bucket, folderName, contents, folderContentType)
+	_, err := client.PutObject(config.bucket, folderName+relPathSeperator, contents, folderContentType)
 	if err != nil {
 		return fmt.Errorf("failed to create folder [%q] - %v", folderName, err)
 	}
